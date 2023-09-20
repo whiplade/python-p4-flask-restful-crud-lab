@@ -48,32 +48,30 @@ class PlantByID(Resource):
         return make_response(jsonify(plant), 200)
 
     def patch(self, id):
-        parser = reqparse.RequestParser()
-        parser.add_argument("is_in_stock", type=bool, help="Boolean field for is_in_stock")
-        args = parser.parse_args()
-        
+        data = request.get_json()
         plant = Plant.query.get(id)
-        if plant:
-            if args["is_in_stock"] is not None:
-                plant.is_in_stock = args["is_in_stock"]
-                db.session.commit()
-                return {
-                    "id": plant.id,
-                    "is_in_stock": plant.is_in_stock
-                }
-            else:
-                abort(400, message="Bad request")
+        
+        if not plant:
+            return {"message": "Plant not found"}, 404
+        
+        if "is_in_stock" in data and isinstance(data["is_in_stock"], bool):
+            plant.is_in_stock = data["is_in_stock"]
+            db.session.commit()
+            return {
+                "id": plant.id,
+                "is_in_stock": plant.is_in_stock
+            }
         else:
-            abort(404, message="Plant not found")
+            return {"message": "Invalid request data"}, 400
 
     def delete(self, id):
         plant = Plant.query.get(id)
         if plant:
             db.session.delete(plant)
             db.session.commit()
-            return '', 204
+            return "", 204
         else:
-            abort(404, message="Plant not found")
+            return {"message": "Plant not found"}, 404
 
 api.add_resource(PlantByID, '/plants/<int:id>')
 
