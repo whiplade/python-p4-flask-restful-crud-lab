@@ -2,7 +2,7 @@
 
 from flask import Flask, jsonify, request, make_response
 from flask_migrate import Migrate
-from flask_restful import Api, Resource
+from flask_restful import Api, Resource, reqparse, abort
 
 from models import db, Plant
 
@@ -47,6 +47,33 @@ class PlantByID(Resource):
         plant = Plant.query.filter_by(id=id).first().to_dict()
         return make_response(jsonify(plant), 200)
 
+    def patch(self, id):
+        parser = reqparse.RequestParser()
+        parser.add_argument("is_in_stock", type=bool, help="Boolean field for is_in_stock")
+        args = parser.parse_args()
+        
+        plant = Plant.query.get(id)
+        if plant:
+            if args["is_in_stock"] is not None:
+                plant.is_in_stock = args["is_in_stock"]
+                db.session.commit()
+                return {
+                    "id": plant.id,
+                    "is_in_stock": plant.is_in_stock
+                }
+            else:
+                abort(400, message="Bad request")
+        else:
+            abort(404, message="Plant not found")
+
+    def delete(self, id):
+        plant = Plant.query.get(id)
+        if plant:
+            db.session.delete(plant)
+            db.session.commit()
+            return '', 204
+        else:
+            abort(404, message="Plant not found")
 
 api.add_resource(PlantByID, '/plants/<int:id>')
 
